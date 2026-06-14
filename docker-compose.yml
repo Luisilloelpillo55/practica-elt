@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL (puedes usarla si no quieres la local)
+  postgres-db:
+    image: postgres:15
+    container_name: postgres_staging
+    environment:
+      POSTGRES_USER: uteq_user
+      POSTGRES_PASSWORD: uteq_password
+      POSTGRES_DB: dw_analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - analytics_net
+
+  # Orquestador Apache Airflow
+  airflow:
+    image: apache/airflow:2.7.1-python3.10
+    container_name: airflow_local
+    command: standalone
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - _PIP_ADDITIONAL_REQUIREMENTS=pandas sqlalchemy psycopg2-binary
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - analytics_net
+
+networks:
+  analytics_net:
+    driver: bridge
+
+volumes:
+  pgdata:
